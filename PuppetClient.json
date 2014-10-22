@@ -26,7 +26,7 @@
       "Type": "String"
     },
     "ContentLocation": {
-      "Default": "https://docs.google.com/uc?authuser=0&id=0B5sJ0wfg65ZganV4TkNaWHpnWVE&export=download",
+      "Default": "https://github.com/Habeeb24x7/Puppet/zipball/master",
       "Description": "Location of package (Zip, GZIP or Git repository URL) that includes the PuppetClient content",
       "Type": "String"
     }
