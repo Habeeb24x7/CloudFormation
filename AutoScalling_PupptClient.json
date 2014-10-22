@@ -1,0 +1,269 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Sample template to bring up Puppet Client instance that can be used to bootstrap and manage Puppet Clients. The Puppet Client is populated from an embedded template that defines the set of applications to load. **WARNING** This template creates one or more Amazon EC2 instances. You will be billed for the AWS resources used if you create a stack from this template.",
+  "Parameters": {
+    "InstanceType": {
+      "Description": "EC2 instance type for PuppetClient",
+      "Type": "String",
+      "Default": "t1.micro",
+      "AllowedValues": [
+        "t1.micro",
+        "m1.small",
+        "m1.large",
+        "m1.xlarge",
+        "m2.xlarge",
+        "m2.2xlarge",
+        "m2.4xlarge",
+        "c1.medium",
+        "c1.xlarge",
+        "cc1.4xlarge"
+      ],
+      "ConstraintDescription": "must contain only alphanumeric characters."
+    },
+    "KeyName": {
+      "Default": "sean-key-pair-sydney",
+      "Description": "Name of an existing EC2 KeyPair to enable SSH access to the PuppetClient",
+      "Type": "String"
+    },
+    "ContentLocation": {
+      "Default": "https://github.com/Habeeb24x7/Puppet/zipball/master",
+      "Description": "Location of package (Zip, GZIP or Git repository URL) that includes the PuppetClient content",
+      "Type": "String"
+    }
+  },
+  "Mappings": {
+    "AWSInstanceType2Arch": {
+      "t1.micro": {
+        "Arch": "32"
+      },
+      "m1.small": {
+        "Arch": "32"
+      },
+      "m1.large": {
+        "Arch": "64"
+      },
+      "m1.xlarge": {
+        "Arch": "64"
+      },
+      "m2.xlarge": {
+        "Arch": "64"
+      },
+      "m2.2xlarge": {
+        "Arch": "64"
+      },
+      "m2.4xlarge": {
+        "Arch": "64"
+      },
+      "c1.medium": {
+        "Arch": "32"
+      },
+      "c1.xlarge": {
+        "Arch": "64"
+      },
+      "cc1.4xlarge": {
+        "Arch": "64"
+      }
+    },
+    "AWSRegionArch2AMI": {
+      "us-east-1": {
+        "32": "ami-7f418316",
+        "64": "ami-7341831a"
+      },
+      "us-west-1": {
+        "32": "ami-951945d0",
+        "64": "ami-971945d2"
+      },
+      "eu-west-1": {
+        "32": "ami-24506250",
+        "64": "ami-20506254"
+      },
+      "ap-southeast-1": {
+        "32": "ami-74dda626",
+        "64": "ami-7edda62c"
+      },
+      "ap-southeast-2": {
+        "32": "ami-017be73b",
+        "64": "ami-71f7954b"
+      },
+      "ap-northeast-1": {
+        "32": "ami-dcfa4edd",
+        "64": "ami-e8fa4ee9"
+      }
+    }
+  },
+  "Resources": {
+    "CFNInitUser": {
+      "Type": "AWS::IAM::User",
+      "Properties": {
+        "Policies": [
+          {
+            "PolicyName": "AccessForCFNInit",
+            "PolicyDocument": {
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": "cloudformation:DescribeStackResource",
+                  "Resource": "*"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "CFNKeys": {
+      "Type": "AWS::IAM::AccessKey",
+      "Properties": {
+        "UserName": {
+          "Ref": "CFNInitUser"
+        }
+      }
+    },
+    
+    
+    "AutoScalingServerGroup" : {
+    "Type" : "AWS::AutoScaling::AutoScalingGroup",
+    "Properties" : {
+      "AvailabilityZones" : { "Fn::GetAZs" : ""},
+      "LaunchConfigurationName" : { "Ref" : "PuppetClientInstance" },
+      "MinSize" : "2",
+      "MaxSize" : "3",
+      "Cooldown" : "300",        
+      "DesiredCapacity" : "2",
+      "Tags" : [ {
+               "Key" : "Name",
+               "Value" : "Auto Scaling Instances",
+               "PropagateAtLaunch" : "true"
+            }, {
+               "Key" : "Reference",
+               "Value" : "Created from Cloudformation Stack",
+               "PropagateAtLaunch" : "true"
+            } ]
+    }
+  },
+    
+    
+    
+    
+    "PuppetClientInstance": {
+      "Type": "AWS::AutoScaling::LaunchConfiguration",
+      "Metadata": {
+        "AWS::CloudFormation::Init": {
+          "config": {
+            "packages": {
+              "yum": {
+                "puppet": [],
+                "ruby-devel": [],
+                "gcc": [],
+                "make": [],
+                "rubygems": []
+              },
+              "rubygems": {
+                "json": []
+              }
+            },
+            "sources": {
+              "/etc/puppet": {
+                "Ref": "ContentLocation"
+              }
+            },
+            "files": {
+              "/etc/yum.repos.d/epel.repo": {
+                "source": "https://s3.amazonaws.com/cloudformation-examples/enable-epel-on-amazon-linux-ami",
+                "mode": "000644",
+                "owner": "root",
+                "group": "root"
+              }
+            },
+            "commands": {
+              "puppetrun": {
+                "command": "puppet apply /etc/puppet/manifests/site.pp",
+                "cwd": "~"
+              }
+            }
+          }
+        }
+      },
+      "Properties": {
+        "InstanceType": {
+          "Ref": "InstanceType"
+        },
+        "SecurityGroups": [
+          {
+            "Ref": "EC2SecurityGroup"
+          }
+        ],
+        "ImageId": {
+          "Fn::FindInMap": [
+            "AWSRegionArch2AMI",
+            {
+              "Ref": "AWS::Region"
+            },
+            {
+              "Fn::FindInMap": [
+                "AWSInstanceType2Arch",
+                {
+                  "Ref": "InstanceType"
+                },
+                "Arch"
+              ]
+            }
+          ]
+        },
+        "KeyName": {
+          "Ref": "KeyName"
+        },
+        "UserData": {
+          "Fn::Base64": {
+            "Fn::Join": [
+              "",
+              [
+                "#!/bin/bash\n",
+                "/opt/aws/bin/cfn-init --region ",
+                {
+                  "Ref": "AWS::Region"
+                },
+                " -s ",
+                {
+                  "Ref": "AWS::StackName"
+                },
+                " -r PuppetClientInstance ",
+                " --access-key ",
+                {
+                  "Ref": "CFNKeys"
+                },
+                " --secret-key ",
+                {
+                  "Fn::GetAtt": [
+                    "CFNKeys",
+                    "SecretAccessKey"
+                  ]
+                },
+                "\n",
+                "puppet apply /etc/puppet/manifests/site.pp",
+                "\n"
+              ]
+            ]
+          }
+        }
+      }
+    },
+    "EC2SecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Group for SSH communication",
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "22",
+            "ToPort": "22",
+            "CidrIp": "0.0.0.0/0"
+          }
+        ]
+      }
+    }
+  },
+  "Outputs": {
+
+  }
+}
