@@ -158,6 +158,12 @@
                 "mode": "000644",
                 "owner": "root",
                 "group": "root"
+              },
+              "/var/www/html/index.htm": {
+                "content": "Test\n",
+                "mode": "000644",
+                "owner": "apache",
+                "group": "apache"
               }
             },
             "commands": {
