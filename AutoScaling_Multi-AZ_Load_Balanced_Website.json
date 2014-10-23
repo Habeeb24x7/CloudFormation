@@ -159,8 +159,8 @@
                 "owner": "root",
                 "group": "root"
               },
-              "/var/www/html/index.htm": {
-                "content": "Test\n",
+              "/var/www/html/heartbeat": {
+                "content": "Beating...\n",
                 "mode": "000644",
                 "owner": "apache",
                 "group": "apache"
@@ -345,7 +345,7 @@
                 {
                   "Ref": "WebServerPort"
                 },
-                "/"
+                "/heartbeat"
               ]
             ]
           },
