@@ -165,6 +165,14 @@
                 "command": "puppet apply /etc/puppet/manifests/site.pp",
                 "cwd": "~"
               }
+            },
+            "services": {
+              "sysvinit": {
+                "httpd": {
+                  "enabled": "true",
+                  "ensureRunning": "true"
+                }
+              }
             }
           }
         }
