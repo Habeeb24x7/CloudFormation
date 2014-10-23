@@ -10,7 +10,7 @@
     "WebServerPort": {
       "Description": "The TCP port for the Web Server",
       "Type": "String",
-      "Default": "8888"
+      "Default": "80"
     },
     "KeyName": {
       "Default": "sean-key-pair-sydney",
