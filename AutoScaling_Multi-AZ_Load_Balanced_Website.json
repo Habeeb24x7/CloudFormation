@@ -137,6 +137,7 @@
             "packages": {
               "yum": {
                 "puppet": [],
+                "httpd": [],
                 "ruby-devel": [],
                 "gcc": [],
                 "make": [],
