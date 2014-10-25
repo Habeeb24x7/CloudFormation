@@ -1,0 +1,375 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "A simple stack that launches an instance.",
+  "Resources": {
+    "CFNInitUser": {
+      "Type": "AWS::IAM::User",
+      "Properties": {
+        "Policies": [
+          {
+            "PolicyName": "AccessForCFNInit",
+            "PolicyDocument": {
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": "cloudformation:DescribeStackResource",
+                  "Resource": "*"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "CFNKeys": {
+      "Type": "AWS::IAM::AccessKey",
+      "Properties": {
+        "UserName": {
+          "Ref": "CFNInitUser"
+        }
+      }
+    },
+    "Solr1Instance": {
+      "Type": "AWS::EC2::Instance",
+      "Metadata": {
+        "AWS::CloudFormation::Init": {
+          "config": {
+            "packages": {
+              "yum": {
+                "puppet": [],
+                "ruby-devel": [],
+                "gcc": [],
+                "make": [],
+                "rubygems": []
+              },
+              "rubygems": {
+                "json": []
+              }
+            },
+            "sources": {
+              "/etc/puppet": "https://github.com/Habeeb24x7/Puppet/zipball/master",
+              "/tmp/zookeeper": "http://apache.mirror.serversaustralia.com.au/zookeeper/zookeeper-3.4.6/zookeeper-3.4.6.tar.gz",
+              "/tmp/solr": "http://apache.mirror.uber.com.au/lucene/solr/4.10.1/solr-4.10.1.tgz",
+              "/tmp/tomcat": "http://apache.mirror.uber.com.au/tomcat/tomcat-7/v7.0.56/bin/apache-tomcat-7.0.56.tar.gz",
+              "/tmp/hhconfig": "https://github.com/Habeeb24x7/Configurations/zipball/master"
+            },
+            "files": {
+              "/opt/solr_home/war/.hello": {
+                "content": "hi"
+              },
+              "/opt/zookeeper/tmp/myid": {
+                "content": "1"
+              },
+              "/etc/yum.repos.d/epel.repo": {
+                "source": "https://s3.amazonaws.com/cloudformation-examples/enable-epel-on-amazon-linux-ami",
+                "mode": "000644",
+                "owner": "root",
+                "group": "root"
+              }
+            },
+            "commands": {
+              "puppetrun": {
+                "command": "puppet apply /etc/puppet/manifests/site.pp",
+                "cwd": "~"
+              }
+            }
+          }
+        }
+      },
+      "Properties": {
+        "ImageId": "ami-71f7954b",
+        "InstanceType": "t1.micro",
+        "AvailabilityZone": {
+          "Fn::Select": [
+            "0",
+            {
+              "Fn::GetAZs": ""
+            }
+          ]
+        },
+        "KeyName": "sean-key-pair-sydney",
+        "UserData": {
+          "Fn::Base64": {
+            "Fn::Join": [
+              "",
+              [
+                "#!/bin/bash\n",
+                "/opt/aws/bin/cfn-init --region ",
+                {
+                  "Ref": "AWS::Region"
+                },
+                " -s ",
+                {
+                  "Ref": "AWS::StackName"
+                },
+                " -r Solr1Instance ",
+                " --access-key ",
+                {
+                  "Ref": "CFNKeys"
+                },
+                " --secret-key ",
+                {
+                  "Fn::GetAtt": [
+                    "CFNKeys",
+                    "SecretAccessKey"
+                  ]
+                },
+                "\n",
+                "puppet apply /etc/puppet/manifests/site.pp",
+                "\n",
+                "chmod 755 /tmp/hhconfig/hh.sh",
+                "\n",
+                "/tmp/hhconfig/hh.sh",
+                "\n"
+              ]
+            ]
+          }
+        },
+        "PrivateIpAddress": "172.31.3.111",
+        "SecurityGroups": [
+          {
+            "Ref": "SolrSecurityGroup"
+          }
+        ]
+      }
+    },
+    "Solr2Instance": {
+      "Type": "AWS::EC2::Instance",
+      "Metadata": {
+        "AWS::CloudFormation::Init": {
+          "config": {
+            "packages": {
+              "yum": {
+                "puppet": [],
+                "ruby-devel": [],
+                "gcc": [],
+                "make": [],
+                "rubygems": []
+              },
+              "rubygems": {
+                "json": []
+              }
+            },
+            "sources": {
+              "/etc/puppet": "https://github.com/Habeeb24x7/Puppet/zipball/master",
+              "/tmp/zookeeper": "http://apache.mirror.serversaustralia.com.au/zookeeper/zookeeper-3.4.6/zookeeper-3.4.6.tar.gz",
+              "/tmp/solr": "http://apache.mirror.uber.com.au/lucene/solr/4.10.1/solr-4.10.1.tgz",
+              "/tmp/tomcat": "http://apache.mirror.uber.com.au/tomcat/tomcat-7/v7.0.56/bin/apache-tomcat-7.0.56.tar.gz",
+              "/tmp/hhconfig": "https://github.com/Habeeb24x7/Configurations/zipball/master"
+            },
+            "files": {
+              "/opt/solr_home/war/.hello": {
+                "content": "hi"
+              },
+              "/opt/zookeeper/tmp/myid": {
+                "content": "2"
+              },
+              "/etc/yum.repos.d/epel.repo": {
+                "source": "https://s3.amazonaws.com/cloudformation-examples/enable-epel-on-amazon-linux-ami",
+                "mode": "000644",
+                "owner": "root",
+                "group": "root"
+              }
+            },
+            "commands": {
+              "puppetrun": {
+                "command": "puppet apply /etc/puppet/manifests/site.pp",
+                "cwd": "~"
+              }
+            }
+          }
+        }
+      },
+      "Properties": {
+        "ImageId": "ami-71f7954b",
+        "InstanceType": "t1.micro",
+        "AvailabilityZone": {
+          "Fn::Select": [
+            "0",
+            {
+              "Fn::GetAZs": ""
+            }
+          ]
+        },
+        "KeyName": "sean-key-pair-sydney",
+        "UserData": {
+          "Fn::Base64": {
+            "Fn::Join": [
+              "",
+              [
+                "#!/bin/bash\n",
+                "/opt/aws/bin/cfn-init --region ",
+                {
+                  "Ref": "AWS::Region"
+                },
+                " -s ",
+                {
+                  "Ref": "AWS::StackName"
+                },
+                " -r Solr1Instance ",
+                " --access-key ",
+                {
+                  "Ref": "CFNKeys"
+                },
+                " --secret-key ",
+                {
+                  "Fn::GetAtt": [
+                    "CFNKeys",
+                    "SecretAccessKey"
+                  ]
+                },
+                "\n",
+                "puppet apply /etc/puppet/manifests/site.pp",
+                "\n",
+                "echo 2 > /opt/zookeeper/tmp/myid",
+                "\n",
+                "chmod 755 /tmp/hhconfig/hh.sh",
+                "\n",
+                "/tmp/hhconfig/hh.sh",
+                "\n"
+              ]
+            ]
+          }
+        },
+        "PrivateIpAddress": "172.31.3.112",
+        "SecurityGroups": [
+          {
+            "Ref": "SolrSecurityGroup"
+          }
+        ]
+      }
+    },
+    "Solr3Instance": {
+      "Type": "AWS::EC2::Instance",
+      "Metadata": {
+        "AWS::CloudFormation::Init": {
+          "config": {
+            "packages": {
+              "yum": {
+                "puppet": [],
+                "ruby-devel": [],
+                "gcc": [],
+                "make": [],
+                "rubygems": []
+              },
+              "rubygems": {
+                "json": []
+              }
+            },
+            "sources": {
+              "/etc/puppet": "https://github.com/Habeeb24x7/Puppet/zipball/master",
+              "/tmp/zookeeper": "http://apache.mirror.serversaustralia.com.au/zookeeper/zookeeper-3.4.6/zookeeper-3.4.6.tar.gz",
+              "/tmp/solr": "http://apache.mirror.uber.com.au/lucene/solr/4.10.1/solr-4.10.1.tgz",
+              "/tmp/tomcat": "http://apache.mirror.uber.com.au/tomcat/tomcat-7/v7.0.56/bin/apache-tomcat-7.0.56.tar.gz",
+              "/tmp/hhconfig": "https://github.com/Habeeb24x7/Configurations/zipball/master"
+            },
+            "files": {
+              "/opt/solr_home/war/.hello": {
+                "content": "hi"
+              },
+              "/opt/zookeeper/tmp/myid": {
+                "content": "3"
+              },
+              "/etc/yum.repos.d/epel.repo": {
+                "source": "https://s3.amazonaws.com/cloudformation-examples/enable-epel-on-amazon-linux-ami",
+                "mode": "000644",
+                "owner": "root",
+                "group": "root"
+              }
+            },
+            "commands": {
+              "puppetrun": {
+                "command": "puppet apply /etc/puppet/manifests/site.pp",
+                "cwd": "~"
+              }
+            }
+          }
+        }
+      },
+      "Properties": {
+        "ImageId": "ami-71f7954b",
+        "InstanceType": "t1.micro",
+        "AvailabilityZone": {
+          "Fn::Select": [
+            "0",
+            {
+              "Fn::GetAZs": ""
+            }
+          ]
+        },
+        "KeyName": "sean-key-pair-sydney",
+        "UserData": {
+          "Fn::Base64": {
+            "Fn::Join": [
+              "",
+              [
+                "#!/bin/bash\n",
+                "/opt/aws/bin/cfn-init --region ",
+                {
+                  "Ref": "AWS::Region"
+                },
+                " -s ",
+                {
+                  "Ref": "AWS::StackName"
+                },
+                " -r Solr1Instance ",
+                " --access-key ",
+                {
+                  "Ref": "CFNKeys"
+                },
+                " --secret-key ",
+                {
+                  "Fn::GetAtt": [
+                    "CFNKeys",
+                    "SecretAccessKey"
+                  ]
+                },
+                "\n",
+                "puppet apply /etc/puppet/manifests/site.pp",
+                "\n",
+                "echo 3 > /opt/zookeeper/tmp/myid",
+                "\n",
+                "chmod 755 /tmp/hhconfig/hh.sh",
+                "\n",
+                "/tmp/hhconfig/hh.sh",
+                "\n"
+              ]
+            ]
+          }
+        },
+        "PrivateIpAddress": "172.31.3.113",
+        "SecurityGroups": [
+          {
+            "Ref": "SolrSecurityGroup"
+          }
+        ]
+      }
+    },
+    "SolrSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Enable SSH access and all traffic from other Solr servers",
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "22",
+            "ToPort": "22",
+            "CidrIp": "0.0.0.0/0"
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "8080",
+            "ToPort": "8080",
+            "CidrIp": "0.0.0.0/0"
+          },
+          {
+            "IpProtocol": "-1",
+            "FromPort": "-1",
+            "ToPort": "-1",
+            "CidrIp": "172.31.3.1/16"
+          }
+        ]
+      }
+    }
+  }
+}
